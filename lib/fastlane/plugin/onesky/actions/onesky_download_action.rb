@@ -4,6 +4,7 @@ module Fastlane
       def self.run(params)
         Actions.verify_gem!('onesky-ruby')
         require 'onesky'
+        require 'json'
 
         client = ::Onesky::Client.new(params[:public_key], params[:secret_key])
         project = client.project(params[:project_id])

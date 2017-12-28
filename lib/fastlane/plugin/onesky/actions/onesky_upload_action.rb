@@ -4,22 +4,37 @@ module Fastlane
       def self.run(params)
         Actions.verify_gem!('onesky-ruby')
         require 'onesky'
+        require 'json'
 
         client = ::Onesky::Client.new(params[:public_key], params[:secret_key])
-
         project = client.project(params[:project_id])
 
         UI.success 'Starting the upload to OneSky'
-        resp = project.upload_file(
-          file: params[:strings_file_path],
-          file_format: params[:strings_file_format],
-          is_keeping_all_strings: !params[:deprecate_missing]
-        )
 
-        if resp.code == 201
-          UI.success "#{File.basename params[:strings_file_path]} was successfully uploaded to project #{params[:project_id]} in OneSky"
-        else
-          UI.error "Error uploading file to OneSky, Status code is #{resp.code}"
+        files = JSON.parse(project.list_file)['data'].map { |x| x['file_name'] }
+
+        Dir::chdir(params[:source_dir])
+        Dir::glob('*.lproj').each do |lproj_dir|
+          files.each do |file_name|
+            file_path = "#{Dir::pwd}/#{lproj_dir}/#{file_name}"
+
+            unless File::exist?(file_path) then
+              UI.message "missing file at #{file_path}. Skip."
+              next
+            end
+
+            locale = lproj_dir.gsub(".lproj", "")
+
+            UI.message "Uploading translation #{locale} of file #{file_path} to OneSky..."
+
+            resp = project.upload_file(file: file_path, file_format: params[:strings_file_format], locale: locale, is_keeping_all_strings: false)
+
+            if resp.code == 201
+              UI.success "#{file_path} was successfully uploaded to project #{params[:project_id]} in OneSky"
+            else
+              UI.error "Error uploading file to OneSky, Status code is #{resp.code}"
+            end
+          end
         end
       end
 
@@ -56,9 +71,9 @@ module Fastlane
                                        verify_block: proc do |value|
                                          raise "No project id given, pass using `project_id: 'id'`".red unless value and !value.empty?
                                        end),
-          FastlaneCore::ConfigItem.new(key: :strings_file_path,
-                                       env_name: 'ONESKY_STRINGS_FILE_PATH',
-                                       description: 'Base file path for the strings file to upload',
+          FastlaneCore::ConfigItem.new(key: :source_dir,
+                                       env_name: 'ONESKY_UPLOAD_SOURCE',
+                                       description: 'Directory for the strings file to upload',
                                        is_string: true,
                                        optional: false,
                                        verify_block: proc do |value|
