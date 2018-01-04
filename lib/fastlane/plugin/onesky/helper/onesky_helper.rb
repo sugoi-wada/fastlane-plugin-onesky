@@ -7,6 +7,10 @@ module Fastlane
       def self.show_message
         UI.message("Hello from the onesky plugin helper!")
       end
+
+      def self.normalize(locale)
+        locale.gsub('zh-TW', 'zh-Hant')
+      end
     end
   end
 end
