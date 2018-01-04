@@ -27,7 +27,7 @@ module Fastlane
 
             UI.message "Uploading translation #{locale} of file #{file_path} to OneSky..."
 
-            resp = project.upload_file(file: file_path, file_format: params[:strings_file_format], locale: locale, is_keeping_all_strings: false)
+            resp = project.upload_file(file: file_path, file_format: params[:strings_file_format], locale: locale, is_keeping_all_strings: !params[:deprecate_missing])
 
             if resp.code == 201
               UI.success "#{file_path} was successfully uploaded to project #{params[:project_id]} in OneSky"
